@@ -58,15 +58,24 @@ def _a_tiempo(serie: pd.Series) -> pd.Series:
     tiempo = pd.to_datetime(serie, errors="coerce")
     if tiempo.notna().sum() == 0:
         tiempo = pd.to_datetime(pd.to_numeric(serie, errors="coerce"), unit="ms", errors="coerce")
-    if getattr(tiempo.dt, "tz", None) is not None:
-        tiempo = tiempo.dt.tz_localize(None)
+    if getattr(tiempo.dt, "tz", None) is not None:   # horas en UTC (InfluxDB) -> hora de Colombia
+        tiempo = tiempo.dt.tz_convert("America/Bogota").dt.tz_localize(None)
     return tiempo
 
 
 def leer_csv(archivo) -> pd.DataFrame:
     """Devuelve un DataFrame con 'tiempo' y las variables que encuentre en el archivo."""
-    crudo = pd.read_csv(archivo, sep=None, engine="python")
+    # comment="#" ignora las líneas de anotación (#group, #datatype...) del CSV de InfluxDB
+    crudo = pd.read_csv(archivo, sep=None, engine="python", comment="#")
     crudo.columns = [str(c).strip() for c in crudo.columns]
+    crudo = crudo.loc[:, [c for c in crudo.columns if c and not c.startswith("Unnamed")]]
+
+    # Formato "largo" de InfluxDB (_time, _field, _value): una fila por variable -> una columna por variable
+    if {"_field", "_value"}.issubset(crudo.columns):
+        col_t = "_time" if "_time" in crudo.columns else "time"
+        crudo = (crudo.pivot_table(index=col_t, columns="_field", values="_value", aggfunc="last")
+                 .reset_index().rename(columns={col_t: "time"}))
+        crudo.columns = [str(c) for c in crudo.columns]
 
     col_tiempo = next(
         (c for c in crudo.columns if re.search(r"time|tiempo|fecha", c, re.I)), crudo.columns[0]
