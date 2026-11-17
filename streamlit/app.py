@@ -1,3 +1,4 @@
+
 """
 Invernadero IoT - App de análisis
 Proyecto Final · Computación Física e Internet de las Cosas
@@ -41,6 +42,150 @@ CSV_EJEMPLO = Path(__file__).parent / "datos_grafana.csv"
 
 st.set_page_config(page_title="Invernadero IoT", page_icon="🌱", layout="wide")
 
+# ---------- Estilo visual: invernadero ----------
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+    :root {
+        --forest: #244b3b;
+        --leaf: #5d8b68;
+        --sage: #e8f0e7;
+        --cream: #f7f8f1;
+        --ink: #26382f;
+        --muted: #718176;
+    }
+
+    .stApp {
+        background:
+            radial-gradient(ellipse at 8% 4%, rgba(188, 211, 174, .30), transparent 28%),
+            radial-gradient(ellipse at 95% 18%, rgba(218, 230, 201, .32), transparent 30%),
+            linear-gradient(135deg, #f8faf4 0%, #f1f5ec 48%, #fbfaf4 100%);
+        color: var(--ink);
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    [data-testid="stHeader"] {
+        background: rgba(248, 250, 244, .82);
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #e6efe3 0%, #edf2e8 58%, #e3ecdf 100%);
+        border-right: 1px solid #d5e2d2;
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 2rem;
+    }
+
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: var(--forest);
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+    }
+
+    h1 {
+        color: var(--forest) !important;
+        font-family: 'Playfair Display', Georgia, serif !important;
+        font-size: clamp(2rem, 4vw, 3rem) !important;
+        letter-spacing: -.7px;
+        padding: .5rem 0 .15rem;
+    }
+
+    h2, h3 {
+        color: var(--forest) !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-weight: 700 !important;
+    }
+
+    [data-testid="stCaptionContainer"] {
+        color: var(--muted);
+        font-size: .98rem;
+    }
+
+    [data-testid="stMetric"] {
+        background: rgba(255, 255, 255, .82);
+        border: 1px solid #dce8d9;
+        border-radius: 18px;
+        padding: 1.1rem 1.25rem;
+        box-shadow: 0 5px 18px rgba(42, 74, 54, .055);
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: #63796a;
+        font-weight: 600;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: var(--forest);
+        font-weight: 700;
+    }
+
+    [data-testid="stAlert"] {
+        border-radius: 14px;
+        border: 1px solid rgba(93, 139, 104, .18);
+    }
+
+    [data-testid="stFileUploader"] section {
+        background: rgba(255, 255, 255, .62);
+        border: 1.5px dashed #9db99e;
+        border-radius: 16px;
+    }
+
+    [data-testid="stSlider"] [role="slider"] {
+        background: var(--leaf);
+    }
+
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"] {
+        background: rgba(255, 255, 255, .86);
+        border: 1px solid #dce8d9;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 18px rgba(42, 74, 54, .045);
+    }
+
+    [data-testid="stExpander"] {
+        background: rgba(255, 255, 255, .68);
+        border: 1px solid #dce8d9;
+        border-radius: 14px;
+    }
+
+    [data-testid="stExpander"] summary {
+        color: var(--forest);
+        font-weight: 600;
+    }
+
+    [data-testid="stPlotlyChart"] {
+        background: rgba(255, 255, 255, .78);
+        border: 1px solid #dce8d9;
+        border-radius: 18px;
+        padding: .45rem .45rem .1rem;
+        box-shadow: 0 5px 18px rgba(42, 74, 54, .045);
+    }
+
+    div[data-testid="stVerticalBlock"] > div:has(> [data-testid="stHorizontalBlock"]) {
+        gap: .8rem;
+    }
+
+    hr {
+        border-color: #dce8d9;
+    }
+
+    /* Ajustes para pantallas pequeñas */
+    @media (max-width: 700px) {
+        .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        h1 {
+            font-size: 2rem !important;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 
 # ---------- Lectura del CSV de Grafana ----------
 def _a_numero(serie: pd.Series) -> pd.Series:
@@ -58,19 +203,17 @@ def _a_tiempo(serie: pd.Series) -> pd.Series:
     tiempo = pd.to_datetime(serie, errors="coerce")
     if tiempo.notna().sum() == 0:
         tiempo = pd.to_datetime(pd.to_numeric(serie, errors="coerce"), unit="ms", errors="coerce")
-    if getattr(tiempo.dt, "tz", None) is not None:   # horas en UTC (InfluxDB) -> hora de Colombia
+    if getattr(tiempo.dt, "tz", None) is not None:
         tiempo = tiempo.dt.tz_convert("America/Bogota").dt.tz_localize(None)
     return tiempo
 
 
 def leer_csv(archivo) -> pd.DataFrame:
     """Devuelve un DataFrame con 'tiempo' y las variables que encuentre en el archivo."""
-    # comment="#" ignora las líneas de anotación (#group, #datatype...) del CSV de InfluxDB
     crudo = pd.read_csv(archivo, sep=None, engine="python", comment="#")
     crudo.columns = [str(c).strip() for c in crudo.columns]
     crudo = crudo.loc[:, [c for c in crudo.columns if c and not c.startswith("Unnamed")]]
 
-    # Formato "largo" de InfluxDB (_time, _field, _value): una fila por variable -> una columna por variable
     if {"_field", "_value"}.issubset(crudo.columns):
         col_t = "_time" if "_time" in crudo.columns else "time"
         crudo = (crudo.pivot_table(index=col_t, columns="_field", values="_value", aggfunc="last")
@@ -209,9 +352,19 @@ for clave in presentes:
                              line=dict(color=var["color"], width=2)))
     fig.add_trace(go.Scatter(x=fuera["tiempo"], y=fuera[clave], mode="markers", name="Fuera de rango",
                              marker=dict(color="#000000", size=6, symbol="x")))
-    fig.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10),
-                      title=f'{var["nombre"]} ({var["unidad"]})',
-                      yaxis_title=var["unidad"], legend=dict(orientation="h", y=-0.2))
+    fig.update_layout(
+        height=320,
+        margin=dict(l=18, r=18, t=48, b=18),
+        title=dict(text=f'{var["nombre"]} ({var["unidad"]})',
+                   font=dict(family="DM Sans, sans-serif", size=17, color="#244b3b")),
+        template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(255,255,255,0)",
+        font=dict(family="DM Sans, sans-serif", color="#52665a"),
+        xaxis=dict(showgrid=False, zeroline=False, linecolor="#dce8d9"),
+        yaxis=dict(title=var["unidad"], gridcolor="#e8eee5", zeroline=False),
+        legend=dict(orientation="h", y=-0.2)
+    )
     st.plotly_chart(fig, width="stretch")
 
 # --- Estadísticas ---
@@ -251,9 +404,16 @@ if len(presentes) == 2:
             fig = go.Figure(go.Scatter(
                 x=par["temperatura"], y=par["humedad_suelo"], mode="markers",
                 marker=dict(color="#2e7d32", size=7, opacity=0.6)))
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
-                              xaxis_title="Temperatura del aire (°C)",
-                              yaxis_title="Humedad del suelo (%)")
+            fig.update_layout(
+                height=340,
+                margin=dict(l=18, r=18, t=18, b=18),
+                template="plotly_white",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(255,255,255,0)",
+                font=dict(family="DM Sans, sans-serif", color="#52665a"),
+                xaxis=dict(title="Temperatura del aire (°C)", showgrid=False, zeroline=False),
+                yaxis=dict(title="Humedad del suelo (%)", gridcolor="#e8eee5", zeroline=False)
+            )
             st.plotly_chart(fig, width="stretch")
         with der:
             st.metric("Correlación de Pearson", f"{r:.2f}")
@@ -289,3 +449,4 @@ for texto in recomendaciones:
 
 with st.expander("Ver datos cargados"):
     st.dataframe(datos, hide_index=True, width="stretch")
+
