@@ -1,0 +1,7 @@
+# Wokwi Library List
+# See https://docs.wokwi.com/guides/libraries
+
+ESP8266 Influxdb
+PubSubClient
+ArduinoJson@6.21.5
+DHT sensor library for ESPx
