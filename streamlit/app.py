@@ -40,7 +40,7 @@ VARIABLES = {
 }
 CSV_EJEMPLO = Path(__file__).parent / "datos_grafana.csv"
 
-st.set_page_config(page_title="Invernadero IoT", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Invernadero Majito", page_icon="🌱", layout="wide")
 
 
 # ---------- DISEÑO VISUAL: INVERNADERO ----------
