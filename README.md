@@ -26,8 +26,8 @@ ESP32 (Wokwi) ───┤◄─MQTT (comandos RPC)──┘
 ## Enlaces
 
 - Simulación en Wokwi: https://wokwi.com/projects/480955229561677825
-- App en Streamlit Cloud: _PEGA AQUÍ EL ENLACE_
-- Dashboard de Grafana: ver capturas en [`grafana/`](grafana/)
+- App en Streamlit Cloud: https://invernadero-iot-sofi.streamlit.app
+- Dashboard de Grafana: ver capturas en [`grafana/`](grafana/) y el CSV exportado en [`streamlit/datos_grafana.csv`](streamlit/datos_grafana.csv)
 - Video: _PEGA AQUÍ EL ENLACE_
 
 ## Contenido del repositorio
